@@ -18,7 +18,7 @@ instr 1
   iY = 0.35
   iZ = 1.16
 
-  aX, aY, aZ thomas aFreq, kResetTrigger, kB, kDelta, kSkip, iX,\
+  aX, aY, aZ thomasi aFreq, kResetTrigger, kB, kDelta, kSkip, iX,\
     iY, iZ
 
   // pregain
