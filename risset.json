@@ -1,0 +1,22 @@
+{
+  "name": "GENious",
+  "opcodes": [
+    "lorenz"
+  ],
+  "version": "0.1.0",
+  "short_description": "GEN routines",
+  "long_description": "A set of GEN routines for algorithmic synthesis",
+  "csound_version": "6.18",
+  "author": "Philipp von Neumann",
+  "email": "philipp@von-neumann.com",
+  "license": "LGPL",
+  "repository": "https://github.com/PvonN/GENious",
+  "doc_folder": "doc",
+  "binaries": {
+    "macos": {
+      "url": "https://github.com/alice/myplugin/releases/genious.zip",
+	  "extractpath": "genious.dylib",
+      "build_platform": "13.6.7"
+    }
+  }
+}
