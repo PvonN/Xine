@@ -10,7 +10,7 @@
 //// thomas particle attractor
 typedef struct {
   OPDS h;
-  ARRAYDAT *aout_x, *aout_y, *aout_z; /* output */
+  ARRAYDAT *output_array_x, *output_array_y, *output_array_z; /* output */
   MYFLT *cpsp, *reset_trig, *b, *delta_time, *skip, *in_x, *in_y, *in_z, *n_particles, *max_deviation; /* input */
   MYFLT n_voices, max_dev; /* internal variables */
   AUXCH x_vals, y_vals, z_vals; /* these holds the last calculated
@@ -18,7 +18,7 @@ typedef struct {
   AUXCH x_in, y_in, z_in; /* these holds the input to the vector,
 							 either a calculated value (x_vals, y_vals
 							 or z_vals) or 0*/
-  int32_t phs;
+  AUXCH phs;
 } THOMAS_PARTICLE;
 
 
@@ -33,9 +33,13 @@ int32_t thomas_particle_init(CSOUND *csound, THOMAS_PARTICLE *p){
 
   /* init output arrays */
   p->n_voices = *p->n_particles;
-  tabinit(csound, p->aout_x, p->n_voices);
-  tabinit(csound, p->aout_y, p->n_voices);
-  tabinit(csound, p->aout_z, p->n_voices);
+  tabinit(csound, p->output_array_x, p->n_voices);
+  tabinit(csound, p->output_array_y, p->n_voices);
+  tabinit(csound, p->output_array_z, p->n_voices);
+
+  /* init phasor */
+  csound->AuxAlloc(csound, sizeof(MYFLT) * p->n_voices, &(p->phs));
+  memset(p->phs.auxp, 0, sizeof(MYFLT) * p->n_voices);
   
   /* init value arrays */
   csound->AuxAlloc(csound, sizeof(MYFLT) * p->n_voices, &(p->x_in));
@@ -51,7 +55,7 @@ int32_t thomas_particle_init(CSOUND *csound, THOMAS_PARTICLE *p){
   memset(p->y_vals.auxp, 0, sizeof(MYFLT) * p->n_voices);
   csound->AuxAlloc(csound, sizeof(MYFLT) * p->n_voices, &(p->z_vals));
   memset(p->z_vals.auxp, 0, sizeof(MYFLT) * p->n_voices);
-
+  
   /* init start values */
   MYFLT *x_vals = (MYFLT *) p->x_vals.auxp;
   MYFLT *y_vals = (MYFLT *) p->y_vals.auxp;
@@ -78,14 +82,14 @@ int32_t thomas_particle_process(CSOUND *csound, THOMAS_PARTICLE *p){
   uint32_t n_voices = p->n_voices;
   MYFLT max_deviation = p->max_dev;
   /* oscillator stuff */
-  int32_t phs = p->phs;
+  MYFLT *phs = (MYFLT *) p->phs.auxp;
   MYFLT *cpsp = p->cpsp;
   MYFLT freq = sr / *cpsp++;
 
   /* set output arrays */
-  MYFLT *out_x = (MYFLT *) p->aout_x;
-  MYFLT *out_y = (MYFLT *) p->aout_y;
-  MYFLT *out_z = (MYFLT *) p->aout_z;
+  MYFLT *output_array_x = (MYFLT *) p->output_array_x;
+  MYFLT *output_array_y = (MYFLT *) p->output_array_y;
+  MYFLT *output_array_z = (MYFLT *) p->output_array_z;
   
   /* set time variant values */
   MYFLT time = *p->delta_time;
@@ -104,18 +108,16 @@ int32_t thomas_particle_process(CSOUND *csound, THOMAS_PARTICLE *p){
 
   /* trigger mechanism */
   if (*p->reset_trig){
-    p->phs = 0;
-    phs = p->phs;
-
     for (int voice_index = 0; voice_index < n_voices; voice_index++){
+	  phs[voice_index] = 0;
       x_vals[voice_index] = *p->in_x + signed_deviation(*p->max_deviation, p->n_voices, voice_index);
       y_vals[voice_index] = *p->in_y + signed_deviation(*p->max_deviation, p->n_voices, voice_index);
       z_vals[voice_index] = *p->in_z + signed_deviation(*p->max_deviation, p->n_voices, voice_index);
-    }
 
-    x_in = p->x_in.auxp;
-    y_in = p->y_in.auxp;
-    z_in = p->z_in.auxp;
+	  x_in[voice_index] = x_vals[voice_index];
+	  y_in[voice_index] = x_vals[voice_index];
+	  z_in[voice_index] = z_vals[voice_index];
+	}
   }
   
 
@@ -124,9 +126,9 @@ int32_t thomas_particle_process(CSOUND *csound, THOMAS_PARTICLE *p){
     for (int voice_index = 0; voice_index < n_voices; voice_index++ ) {
       for (int sample_index = offset; sample_index < sample_count;
 		   sample_index++) {
-		out_x[(voice_index*sample_count)+sample_index] = 0;
-		out_y[(voice_index*sample_count)+sample_index] = 0;
-		out_z[(voice_index*sample_count)+sample_index] = 0;
+		output_array_x[(voice_index*sample_count)+sample_index] = 0;
+		output_array_y[(voice_index*sample_count)+sample_index] = 0;
+		output_array_z[(voice_index*sample_count)+sample_index] = 0;
       }
     }
   }
@@ -142,15 +144,15 @@ int32_t thomas_particle_process(CSOUND *csound, THOMAS_PARTICLE *p){
 		 sample_index++) {
 	  /* write values to vectors first to get the start value into the
 		 vector*/
-	  out_x[(voice_index*sample_count)+sample_index] =
+	  output_array_x[(voice_index*sample_count)+sample_index] =
 		x_in[sample_index];
-	  out_y[(voice_index*sample_count)+sample_index] =
+	  output_array_y[(voice_index*sample_count)+sample_index] =
 		y_in[sample_index];
-	  out_z[(voice_index*sample_count)+sample_index] =
+	  output_array_z[(voice_index*sample_count)+sample_index] =
 		z_in[sample_index];
 
 	  /* oscillator loop */
-	  if (phs >= freq) {
+	  if (phs[voice_index] >= freq) {
 		do {
 		  /* fuctions for the thomas attractor
 			 https://en.wikipedia.org/wiki/Thomas'_cyclically_symmetric_attractor
@@ -171,7 +173,7 @@ int32_t thomas_particle_process(CSOUND *csound, THOMAS_PARTICLE *p){
 		z_in[voice_index] = z_vals[voice_index];
 
 		/* reset phasor */
-		phs = 0;
+		phs[voice_index] = 0;
 	  } else {
 		/* set input for the output vectors when phasor is NOT crossing
 		   zero to 0 */
@@ -180,13 +182,12 @@ int32_t thomas_particle_process(CSOUND *csound, THOMAS_PARTICLE *p){
 		z_in[voice_index] = 0;
 	  }
 	  /* increment phasor */
-	  phs++;
+	  phs[voice_index] += 1;
 	}
-
   }
   
   /* save values for next process loop */
-  p->phs = phs;
+  //  p->phs = phs;
   
   /* p->x_vals.auxp = x_vals; */
   /* p->y_vals.auxp = y_vals; */
