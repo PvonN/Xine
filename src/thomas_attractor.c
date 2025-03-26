@@ -1,19 +1,19 @@
 #include "../include/xine.h"
 #include "../include/helper_functions.h"
 ////////////////////////////////////////////////////////////////////////////////
-/// dadras attractor opcodes ///////////////////////////////////////////////////
+/// thomas attractor opcodes ///////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-// dadras opcode
+// thomas opcode
 // - outputs a value when cps cycle is done else outputs 0
 typedef struct {
   OPDS h;
   MYFLT *aout_x, *aout_y, *aout_z; /* output */
-  MYFLT *cpsp, *reset_trig, *a, *b, *c, *d, *e, *delta_time, *skip, *in_x, *in_y, *in_z; /* input */
+  MYFLT *cpsp, *reset_trig, *b, *delta_time, *skip, *in_x, *in_y, *in_z; /* input */
   MYFLT x_value, y_value, z_value, x_in, y_in, z_in; /* internal variables */
   int32_t phs; /* oscillator */
-} DADRAS;
+} THOMAS;
 
-int32_t dadras_init(CSOUND *csound, DADRAS *p){
+int32_t thomas_init(CSOUND *csound, THOMAS *p){
   p->phs = 0;
   
   p->x_value = *p->in_x;
@@ -26,7 +26,7 @@ int32_t dadras_init(CSOUND *csound, DADRAS *p){
   return OK;
 }
 
-int32_t dadras_process(CSOUND *csound, DADRAS *p){
+int32_t thomas_process(CSOUND *csound, THOMAS *p){
   /* sample accurate mechanism */
   uint32_t offset = p->h.insdshead->ksmps_offset;
   uint32_t early  = p->h.insdshead->ksmps_no_end;
@@ -35,7 +35,7 @@ int32_t dadras_process(CSOUND *csound, DADRAS *p){
   uint32_t sample_count = CS_KSMPS;
   uint32_t sample_index;
   MYFLT *out_x, *out_y, *out_z;
-  MYFLT a, b, c, d, e, x, y, z, xx, yy, x_in, y_in, z_in, time;
+  MYFLT b, x, y, z, xx, yy, x_in, y_in, z_in, time;
   int32_t skip;
   /* oscillator stuff */
   int32_t phs = p->phs;
@@ -50,11 +50,7 @@ int32_t dadras_process(CSOUND *csound, DADRAS *p){
   /* set time variant values */
   time = *p->delta_time;
   skip = (int32_t)*p->skip;
-  a = *p->a;
   b = *p->b;
-  c = *p->c;
-  d = *p->d;
-  e = *p->e;
   
   /* setting start values for x, y, z*/
   x = p->x_value;
@@ -90,9 +86,9 @@ int32_t dadras_process(CSOUND *csound, DADRAS *p){
   
   /* sample accurate mechanism*/
   if (UNLIKELY(offset)){
-	memset(out_x, '\0', offset*sizeof(MYFLT));
-	memset(out_y, '\0', offset*sizeof(MYFLT));
-	memset(out_z, '\0', offset*sizeof(MYFLT));    
+      memset(out_x, '\0', offset*sizeof(MYFLT));
+      memset(out_y, '\0', offset*sizeof(MYFLT));
+      memset(out_z, '\0', offset*sizeof(MYFLT));    
   }
   if (UNLIKELY(early)){
     sample_count -= early;
@@ -103,7 +99,7 @@ int32_t dadras_process(CSOUND *csound, DADRAS *p){
   
   /* process loop */
   for (sample_index = offset; sample_index <
-		 sample_count;sample_index++){
+	 sample_count;sample_index++){
 
     /* write values to vectors */
     out_x[sample_index] = x_in;
@@ -116,18 +112,18 @@ int32_t dadras_process(CSOUND *csound, DADRAS *p){
     if (phs >= freq){
       /* get values loop */
       do {
-		/* fuctions for the dadras attractor
-
-		 */
-		xx = x + time * (y - (a * x) + (b * y * z));
-		yy = y + time * ((c * y) - (x * y) + z);
-		z =  z + time * ((d * x * y) - (e * z));
-		x = xx;
-		y = yy;
+	/* fuctions for the thomas attractor
+	   https://en.wikipedia.org/wiki/Thomas'_cyclically_symmetric_attractor
+	*/
+	xx = x + time * (-b * x + sin(y));
+	yy = y + time * (-b * y + sin(z));
+	z =  z + time * (-b * z + sin(x));
+	x = xx;
+	y = yy;
       } while(--skip > 0);
       
       /* when phase is crossing 0 the output values are	taken from
-		 dadras attractor functions */      
+	 thomas attractor functions */      
       x_in = x;
       y_in = y;
       z_in = z;
@@ -137,7 +133,7 @@ int32_t dadras_process(CSOUND *csound, DADRAS *p){
     } else {
 
       /* while phase is in cycle boundaries the output values are set
-		 to 0 */      
+	 to 0 */      
       x_in = 0;
       y_in = 0;
       z_in = 0;
@@ -160,17 +156,17 @@ int32_t dadras_process(CSOUND *csound, DADRAS *p){
   return OK;
 }
 
-// dadrash opcode
+// thomash opcode
 // - holds the ouput value till next value is generated
 typedef struct {
   OPDS h;
   MYFLT *aout_x, *aout_y, *aout_z; /* output */
-  MYFLT *cpsp, *reset_trig, *a, *b, *c, *d, *e, *delta_time, *skip, *in_x, *in_y, *in_z; /* input */
-  MYFLT x_value, y_value, z_value, x_in, y_in, z_in; /* internal variables */
+  MYFLT *cpsp, *reset_trig, *b, *delta_time, *skip, *in_x, *in_y, *in_z; /* input */
+  MYFLT x_value, y_value, z_value; /* internal variables */
   int32_t phs; /* oscillator */
-} DADRAS_H;
+} THOMAS_H;
 
-int32_t dadras_h_init(CSOUND *csound, DADRAS_H *p){
+int32_t thomas_h_init(CSOUND *csound, THOMAS_H *p){
   p->phs = 0;
   
   p->x_value = *p->in_x;
@@ -179,7 +175,7 @@ int32_t dadras_h_init(CSOUND *csound, DADRAS_H *p){
   return OK;
 }
 
-int32_t dadras_h_process(CSOUND *csound, DADRAS_H *p){
+int32_t thomas_h_process(CSOUND *csound, THOMAS_H *p){
   /* sample accurate mechanism */
   uint32_t offset = p->h.insdshead->ksmps_offset;
   uint32_t early  = p->h.insdshead->ksmps_no_end;
@@ -188,7 +184,7 @@ int32_t dadras_h_process(CSOUND *csound, DADRAS_H *p){
   uint32_t sample_count = CS_KSMPS;
   uint32_t sample_index;
   MYFLT *out_x, *out_y, *out_z;
-  MYFLT a, b, c, d, e, x, y, z, xx, yy, x_in, y_in, z_in, time;
+  MYFLT b, x, y, z, xx, yy, x_in, y_in, z_in, time;
   int32_t skip;
   /* oscillator stuff */
   int32_t phs;
@@ -203,11 +199,7 @@ int32_t dadras_h_process(CSOUND *csound, DADRAS_H *p){
   /* set time variant values */
   time = *p->delta_time;
   skip = (int32_t)*p->skip;
-  a = *p->a;
   b = *p->b;
-  c = *p->c;
-  d = *p->d;
-  e = *p->e;
 
   /* setting start values for x, y, z*/
   x = p->x_value;
@@ -235,9 +227,9 @@ int32_t dadras_h_process(CSOUND *csound, DADRAS_H *p){
     
   /* sample accurate mechanism*/
   if (UNLIKELY(offset)){
-	memset(out_x, '\0', offset * sizeof(MYFLT));
-	memset(out_y, '\0', offset * sizeof(MYFLT));
-	memset(out_z, '\0', offset * sizeof(MYFLT));    
+      memset(out_x, '\0', offset * sizeof(MYFLT));
+      memset(out_y, '\0', offset * sizeof(MYFLT));
+      memset(out_z, '\0', offset * sizeof(MYFLT));    
   }
   if (UNLIKELY(early)){
     sample_count -= early;
@@ -255,14 +247,14 @@ int32_t dadras_h_process(CSOUND *csound, DADRAS_H *p){
 
       /* get values loop */
       do {
-		/* fuctions for the dadras attractor
-
-		 */
-		xx = x + time * (y - (a * x) + (b * y * z));
-		yy = y + time * ((c * y) - (x * y) + z);
-		z =  z + time * ((d * x * y) - (e * z));
-		x = xx;
-		y = yy;
+	/* fuctions for the thomas attractor
+	   https://en.wikipedia.org/wiki/Thomas'_cyclically_symmetric_attractor
+	*/
+	xx = x + time * (-b * x + sin(y));
+	yy = y + time * (-b * y + sin(z));
+	z =  z + time * (-b * z + sin(x));
+	x = xx;
+	y = yy;
       } while(--skip > 0);
 
       /* start new phase cycle */
@@ -289,17 +281,17 @@ int32_t dadras_h_process(CSOUND *csound, DADRAS_H *p){
   return OK;
 }
 
-// dadrasi opcode
+// thomasi opcode
 // - linear interpolation between values
 typedef struct {
   OPDS h;
   MYFLT *aout_x, *aout_y, *aout_z; /* output */
-  MYFLT *cpsp, *reset_trig, *a, *b, *c, *d, *e, *delta_time, *skip, *in_x, *in_y, *in_z; /* input */
-  MYFLT x_value, y_value, z_value, x_in, y_in, z_in, x0, y0, z0; /* internal variables */
+  MYFLT *cpsp, *reset_trig, *b, *delta_time, *skip, *in_x, *in_y, *in_z; /* input */
+  MYFLT x_value, y_value, z_value, x0, y0, z0; /* internal variables */
   int32_t phs; /* oscillator */
-} DADRAS_I;
+} THOMAS_I;
 
-int32_t dadras_i_init(CSOUND *csound, DADRAS_I *p){
+int32_t thomas_i_init(CSOUND *csound, THOMAS_I *p){
   p->phs = 0;
   
   p->x_value = *p->in_x;
@@ -312,7 +304,7 @@ int32_t dadras_i_init(CSOUND *csound, DADRAS_I *p){
   return OK;
 }
 
-int32_t dadras_i_process(CSOUND *csound, DADRAS_I *p){
+int32_t thomas_i_process(CSOUND *csound, THOMAS_I *p){
   /* sample accurate mechanism */
   uint32_t offset = p->h.insdshead->ksmps_offset;
   uint32_t early  = p->h.insdshead->ksmps_no_end;
@@ -321,7 +313,7 @@ int32_t dadras_i_process(CSOUND *csound, DADRAS_I *p){
   uint32_t sample_count = CS_KSMPS;
   uint32_t sample_index;
   MYFLT *out_x, *out_y, *out_z;
-  MYFLT a, b, c, d, e, x, y, z, xx, yy, time;
+  MYFLT b, x, y, z, xx, yy, time;
   int32_t skip;
   /* oscillator stuff */
   int32_t phs;
@@ -337,12 +329,7 @@ int32_t dadras_i_process(CSOUND *csound, DADRAS_I *p){
   /* set time variant values */
   time = *p->delta_time;
   skip = (int32_t)*p->skip;
-  a = *p->a;
   b = *p->b;
-  c = *p->c;
-  d = *p->d;
-  e = *p->e;
-
 
   /* setting start values for x, y, z*/
   x = p->x_value;
@@ -379,9 +366,9 @@ int32_t dadras_i_process(CSOUND *csound, DADRAS_I *p){
     
   /* csound sample accurate mechanism*/
   if (UNLIKELY(offset)){
-	memset(out_x, '\0', offset * sizeof(MYFLT));
-	memset(out_y, '\0', offset * sizeof(MYFLT));
-	memset(out_z, '\0', offset * sizeof(MYFLT));    
+      memset(out_x, '\0', offset * sizeof(MYFLT));
+      memset(out_y, '\0', offset * sizeof(MYFLT));
+      memset(out_z, '\0', offset * sizeof(MYFLT));    
   }
   if (UNLIKELY(early)){
     sample_count -= early;
@@ -397,24 +384,24 @@ int32_t dadras_i_process(CSOUND *csound, DADRAS_I *p){
        sr/cps or in first processing cycle when phs is 0 */
     if ((0 == phs) || (phs >= freq)){
       /* only update values when it's not the first processing loop or
-		 not retriggerd */ 
+	 not retriggerd */ 
       if (phs >= freq){
-		/* keep values updated for interpolation */
-		last_x = x;
-		last_y = y;
-		last_z = z;      
+	/* keep values updated for interpolation */
+	last_x = x;
+	last_y = y;
+	last_z = z;      
       }
 
       /* get values loop */
       do {
-		/* fuctions for the dadras attractor
-
-		 */
-		xx = x + time * (y - (a * x) + (b * y * z));
-		yy = y + time * ((c * y) - (x * y) + z);
-		z =  z + time * ((d * x * y) - (e * z));
-		x = xx;
-		y = yy;
+	/* fuctions for the thomas attractor
+	   https://en.wikipedia.org/wiki/Thomas'_cyclically_symmetric_attractor
+	*/
+	xx = x + time * (-b * x + sin(y));
+	yy = y + time * (-b * y + sin(z));
+	z =  z + time * (-b * z + sin(x));
+	x = xx;
+	y = yy;
       } while(--skip > 0);
 
       /* start new phase cycle */

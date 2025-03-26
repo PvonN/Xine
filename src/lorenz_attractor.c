@@ -1,19 +1,19 @@
 #include "../include/xine.h"
 #include "../include/helper_functions.h"
 ////////////////////////////////////////////////////////////////////////////////
-/// dadras attractor opcodes ///////////////////////////////////////////////////
+/// lorenz attractor opcodes ///////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-// dadras opcode
+// lorenz2 opcode
 // - outputs a value when cps cycle is done else outputs 0
 typedef struct {
   OPDS h;
   MYFLT *aout_x, *aout_y, *aout_z; /* output */
-  MYFLT *cpsp, *reset_trig, *a, *b, *c, *d, *e, *delta_time, *skip, *in_x, *in_y, *in_z; /* input */
+  MYFLT *cpsp, *reset_trig, *sigma, *rho, *beta, *delta_time, *skip, *in_x, *in_y, *in_z; /* input */
   MYFLT x_value, y_value, z_value, x_in, y_in, z_in; /* internal variables */
   int32_t phs; /* oscillator */
-} DADRAS;
+} LORENZ2;
 
-int32_t dadras_init(CSOUND *csound, DADRAS *p){
+int32_t lorenz2_init(CSOUND *csound, LORENZ2 *p){
   p->phs = 0;
   
   p->x_value = *p->in_x;
@@ -26,7 +26,7 @@ int32_t dadras_init(CSOUND *csound, DADRAS *p){
   return OK;
 }
 
-int32_t dadras_process(CSOUND *csound, DADRAS *p){
+int32_t lorenz2_process(CSOUND *csound, LORENZ2 *p){
   /* sample accurate mechanism */
   uint32_t offset = p->h.insdshead->ksmps_offset;
   uint32_t early  = p->h.insdshead->ksmps_no_end;
@@ -35,7 +35,7 @@ int32_t dadras_process(CSOUND *csound, DADRAS *p){
   uint32_t sample_count = CS_KSMPS;
   uint32_t sample_index;
   MYFLT *out_x, *out_y, *out_z;
-  MYFLT a, b, c, d, e, x, y, z, xx, yy, x_in, y_in, z_in, time;
+  MYFLT sigma, rho, beta, x, y, z, xx, yy, x_in, y_in, z_in, time;
   int32_t skip;
   /* oscillator stuff */
   int32_t phs = p->phs;
@@ -50,11 +50,9 @@ int32_t dadras_process(CSOUND *csound, DADRAS *p){
   /* set time variant values */
   time = *p->delta_time;
   skip = (int32_t)*p->skip;
-  a = *p->a;
-  b = *p->b;
-  c = *p->c;
-  d = *p->d;
-  e = *p->e;
+  sigma = *p->sigma;
+  rho = *p->rho;
+  beta = *p->beta;
   
   /* setting start values for x, y, z*/
   x = p->x_value;
@@ -90,9 +88,9 @@ int32_t dadras_process(CSOUND *csound, DADRAS *p){
   
   /* sample accurate mechanism*/
   if (UNLIKELY(offset)){
-	memset(out_x, '\0', offset*sizeof(MYFLT));
-	memset(out_y, '\0', offset*sizeof(MYFLT));
-	memset(out_z, '\0', offset*sizeof(MYFLT));    
+      memset(out_x, '\0', offset*sizeof(MYFLT));
+      memset(out_y, '\0', offset*sizeof(MYFLT));
+      memset(out_z, '\0', offset*sizeof(MYFLT));    
   }
   if (UNLIKELY(early)){
     sample_count -= early;
@@ -103,7 +101,7 @@ int32_t dadras_process(CSOUND *csound, DADRAS *p){
   
   /* process loop */
   for (sample_index = offset; sample_index <
-		 sample_count;sample_index++){
+	 sample_count;sample_index++){
 
     /* write values to vectors */
     out_x[sample_index] = x_in;
@@ -116,18 +114,18 @@ int32_t dadras_process(CSOUND *csound, DADRAS *p){
     if (phs >= freq){
       /* get values loop */
       do {
-		/* fuctions for the dadras attractor
-
-		 */
-		xx = x + time * (y - (a * x) + (b * y * z));
-		yy = y + time * ((c * y) - (x * y) + z);
-		z =  z + time * ((d * x * y) - (e * z));
-		x = xx;
-		y = yy;
+	/* functions for the lorenz attractor
+	   https://en.wikipedia.org/wiki/Lorenz_system
+	 */
+	xx = x + time * (sigma * (y - x));
+	yy = y + time * (x * (rho - z) - y);
+	z  = z + time * ((x * y) - (beta * z));
+	x  = xx;
+	y  = yy;
       } while(--skip > 0);
       
       /* when phase is crossing 0 the output values are	taken from
-		 dadras attractor functions */      
+	 lorenz attractor functions */      
       x_in = x;
       y_in = y;
       z_in = z;
@@ -137,7 +135,7 @@ int32_t dadras_process(CSOUND *csound, DADRAS *p){
     } else {
 
       /* while phase is in cycle boundaries the output values are set
-		 to 0 */      
+	 to 0 */      
       x_in = 0;
       y_in = 0;
       z_in = 0;
@@ -160,17 +158,18 @@ int32_t dadras_process(CSOUND *csound, DADRAS *p){
   return OK;
 }
 
-// dadrash opcode
+
+// lorenzh opcode
 // - holds the ouput value till next value is generated
 typedef struct {
   OPDS h;
   MYFLT *aout_x, *aout_y, *aout_z; /* output */
-  MYFLT *cpsp, *reset_trig, *a, *b, *c, *d, *e, *delta_time, *skip, *in_x, *in_y, *in_z; /* input */
-  MYFLT x_value, y_value, z_value, x_in, y_in, z_in; /* internal variables */
+  MYFLT *cpsp, *reset_trig, *sigma, *rho, *beta, *delta_time, *skip, *in_x, *in_y, *in_z; /* input */
+  MYFLT x_value, y_value, z_value; /* internal variables */
   int32_t phs; /* oscillator */
-} DADRAS_H;
+} LORENZ_H;
 
-int32_t dadras_h_init(CSOUND *csound, DADRAS_H *p){
+int32_t lorenz_h_init(CSOUND *csound, LORENZ_H *p){
   p->phs = 0;
   
   p->x_value = *p->in_x;
@@ -179,7 +178,7 @@ int32_t dadras_h_init(CSOUND *csound, DADRAS_H *p){
   return OK;
 }
 
-int32_t dadras_h_process(CSOUND *csound, DADRAS_H *p){
+int32_t lorenz_h_process(CSOUND *csound, LORENZ_H *p){
   /* sample accurate mechanism */
   uint32_t offset = p->h.insdshead->ksmps_offset;
   uint32_t early  = p->h.insdshead->ksmps_no_end;
@@ -188,7 +187,7 @@ int32_t dadras_h_process(CSOUND *csound, DADRAS_H *p){
   uint32_t sample_count = CS_KSMPS;
   uint32_t sample_index;
   MYFLT *out_x, *out_y, *out_z;
-  MYFLT a, b, c, d, e, x, y, z, xx, yy, x_in, y_in, z_in, time;
+  MYFLT sigma, rho, beta, x, y, z, xx, yy, x_in, y_in, z_in, time;
   int32_t skip;
   /* oscillator stuff */
   int32_t phs;
@@ -203,11 +202,9 @@ int32_t dadras_h_process(CSOUND *csound, DADRAS_H *p){
   /* set time variant values */
   time = *p->delta_time;
   skip = (int32_t)*p->skip;
-  a = *p->a;
-  b = *p->b;
-  c = *p->c;
-  d = *p->d;
-  e = *p->e;
+  sigma = *p->sigma;
+  rho = *p->rho;
+  beta = *p->beta;
 
   /* setting start values for x, y, z*/
   x = p->x_value;
@@ -235,9 +232,9 @@ int32_t dadras_h_process(CSOUND *csound, DADRAS_H *p){
     
   /* sample accurate mechanism*/
   if (UNLIKELY(offset)){
-	memset(out_x, '\0', offset * sizeof(MYFLT));
-	memset(out_y, '\0', offset * sizeof(MYFLT));
-	memset(out_z, '\0', offset * sizeof(MYFLT));    
+      memset(out_x, '\0', offset * sizeof(MYFLT));
+      memset(out_y, '\0', offset * sizeof(MYFLT));
+      memset(out_z, '\0', offset * sizeof(MYFLT));    
   }
   if (UNLIKELY(early)){
     sample_count -= early;
@@ -255,14 +252,14 @@ int32_t dadras_h_process(CSOUND *csound, DADRAS_H *p){
 
       /* get values loop */
       do {
-		/* fuctions for the dadras attractor
-
-		 */
-		xx = x + time * (y - (a * x) + (b * y * z));
-		yy = y + time * ((c * y) - (x * y) + z);
-		z =  z + time * ((d * x * y) - (e * z));
-		x = xx;
-		y = yy;
+	/* functions for the lorenz attractor
+	   https://en.wikipedia.org/wiki/Lorenz_system
+	*/
+	xx = x + time * (sigma * (y - x));
+	yy = y + time * (x * (rho - z) - y);
+	z  = z + time * ((x * y) - (beta * z));
+	x  = xx;
+	y  = yy;
       } while(--skip > 0);
 
       /* start new phase cycle */
@@ -289,17 +286,18 @@ int32_t dadras_h_process(CSOUND *csound, DADRAS_H *p){
   return OK;
 }
 
-// dadrasi opcode
+
+// lorenzi opcode
 // - linear interpolation between values
 typedef struct {
   OPDS h;
   MYFLT *aout_x, *aout_y, *aout_z; /* output */
-  MYFLT *cpsp, *reset_trig, *a, *b, *c, *d, *e, *delta_time, *skip, *in_x, *in_y, *in_z; /* input */
-  MYFLT x_value, y_value, z_value, x_in, y_in, z_in, x0, y0, z0; /* internal variables */
+  MYFLT *cpsp, *reset_trig, *sigma, *rho, *beta, *delta_time, *skip, *in_x, *in_y, *in_z; /* input */
+  MYFLT x_value, y_value, z_value, x0, y0, z0; /* internal variables */
   int32_t phs; /* oscillator */
-} DADRAS_I;
+} LORENZ_I;
 
-int32_t dadras_i_init(CSOUND *csound, DADRAS_I *p){
+int32_t lorenz_i_init(CSOUND *csound, LORENZ_I *p){
   p->phs = 0;
   
   p->x_value = *p->in_x;
@@ -312,7 +310,7 @@ int32_t dadras_i_init(CSOUND *csound, DADRAS_I *p){
   return OK;
 }
 
-int32_t dadras_i_process(CSOUND *csound, DADRAS_I *p){
+int32_t lorenz_i_process(CSOUND *csound, LORENZ_I *p){
   /* sample accurate mechanism */
   uint32_t offset = p->h.insdshead->ksmps_offset;
   uint32_t early  = p->h.insdshead->ksmps_no_end;
@@ -321,7 +319,7 @@ int32_t dadras_i_process(CSOUND *csound, DADRAS_I *p){
   uint32_t sample_count = CS_KSMPS;
   uint32_t sample_index;
   MYFLT *out_x, *out_y, *out_z;
-  MYFLT a, b, c, d, e, x, y, z, xx, yy, time;
+  MYFLT sigma, rho, beta, x, y, z, xx, yy, time;
   int32_t skip;
   /* oscillator stuff */
   int32_t phs;
@@ -337,12 +335,9 @@ int32_t dadras_i_process(CSOUND *csound, DADRAS_I *p){
   /* set time variant values */
   time = *p->delta_time;
   skip = (int32_t)*p->skip;
-  a = *p->a;
-  b = *p->b;
-  c = *p->c;
-  d = *p->d;
-  e = *p->e;
-
+  sigma = *p->sigma;
+  rho = *p->rho;
+  beta = *p->beta;
 
   /* setting start values for x, y, z*/
   x = p->x_value;
@@ -379,9 +374,9 @@ int32_t dadras_i_process(CSOUND *csound, DADRAS_I *p){
     
   /* csound sample accurate mechanism*/
   if (UNLIKELY(offset)){
-	memset(out_x, '\0', offset * sizeof(MYFLT));
-	memset(out_y, '\0', offset * sizeof(MYFLT));
-	memset(out_z, '\0', offset * sizeof(MYFLT));    
+      memset(out_x, '\0', offset * sizeof(MYFLT));
+      memset(out_y, '\0', offset * sizeof(MYFLT));
+      memset(out_z, '\0', offset * sizeof(MYFLT));    
   }
   if (UNLIKELY(early)){
     sample_count -= early;
@@ -397,24 +392,24 @@ int32_t dadras_i_process(CSOUND *csound, DADRAS_I *p){
        sr/cps or in first processing cycle when phs is 0 */
     if ((0 == phs) || (phs >= freq)){
       /* only update values when it's not the first processing loop or
-		 not retriggerd */ 
+	 not retriggerd */ 
       if (phs >= freq){
-		/* keep values updated for interpolation */
-		last_x = x;
-		last_y = y;
-		last_z = z;      
+	/* keep values updated for interpolation */
+	last_x = x;
+	last_y = y;
+	last_z = z;      
       }
 
       /* get values loop */
       do {
-		/* fuctions for the dadras attractor
-
-		 */
-		xx = x + time * (y - (a * x) + (b * y * z));
-		yy = y + time * ((c * y) - (x * y) + z);
-		z =  z + time * ((d * x * y) - (e * z));
-		x = xx;
-		y = yy;
+	/* functions for the lorenz attractor
+	   https://en.wikipedia.org/wiki/Lorenz_system
+	*/
+	xx = x + time * (sigma * (y - x));
+	yy = y + time * (x * (rho - z) - y);
+	z  = z + time * ((x * y) - (beta * z));
+	x  = xx;
+	y  = yy;
       } while(--skip > 0);
 
       /* start new phase cycle */
@@ -442,5 +437,102 @@ int32_t dadras_i_process(CSOUND *csound, DADRAS_I *p){
   p->y0 = last_y;
   p->z0 = last_z;
   
+  return OK;
+}
+
+/// lorenz attractor
+typedef struct {
+  OPDS h;
+  ARRAYDAT *aout_x, *aout_y, *aout_z; /* output */
+  MYFLT *sigma, *rho, *beta, *delta_time, *skip, *in_x, *in_y, *in_z, *n_particles, *max_deviation; /* input */
+  MYFLT n_voices; /* internal variables */
+  MYFLT skip_count;
+  MYFLT x_start;
+  MYFLT y_start;
+  MYFLT z_start;
+  MYFLT max_dev;
+} LORENZ_PARTICLE;
+
+
+int32_t lorenz_particle_init(CSOUND *csound, LORENZ_PARTICLE *p){
+  if (UNLIKELY(*p->n_particles == 0))
+    return
+      csound->InitError(csound, "%s",
+                        Str("Error: Number of particles must be > 0"));
+
+  p->n_voices = *p->n_particles;
+  tabinit(csound, p->aout_x, p->n_voices);
+  tabinit(csound, p->aout_y, p->n_voices);
+  tabinit(csound, p->aout_z, p->n_voices);
+  p->skip_count = *p->skip;
+  p->x_start = *p->in_x;
+  p->y_start = *p->in_y;
+  p->z_start = *p->in_z;
+  p->max_dev = *p->max_deviation;
+  return OK;
+}
+
+int32_t lorenz_particle_process(CSOUND *csound, LORENZ_PARTICLE *p){
+  /* sample accurate mechanism */
+  uint32_t offset = p->h.insdshead->ksmps_offset;
+  uint32_t early  = p->h.insdshead->ksmps_no_end;
+
+  /* variables */
+  uint32_t sample_count = CS_KSMPS;
+  uint32_t sample_index, voice_index;
+  uint32_t n_voices = p->n_voices;
+  uint32_t voice;
+  MYFLT max_deviation = p->max_dev;
+  MYFLT deviation;
+  MYFLT x, y, z, xx, yy, x_with_dev, y_with_dev, z_with_dev;
+  MYFLT sigma = *p->sigma;
+  MYFLT rho = *p->rho;
+  MYFLT beta = *p->beta;
+  MYFLT time = *p->delta_time;
+  uint32_t skip = (uint32_t)p->skip_count;
+  ARRAYDAT *out_x = p->aout_x;
+  ARRAYDAT *out_y = p->aout_y;
+  ARRAYDAT *out_z = p->aout_z;
+  MYFLT *x_out, *y_out, *z_out;
+  
+  /* Process channels: */
+  if (UNLIKELY(early))
+    sample_count -= early;
+  for (voice_index = 0; voice_index < n_voices; voice_index++){
+    x_out = (MYFLT*)&out_x->data[voice_index];
+    y_out = (MYFLT*)&out_y->data[voice_index];
+    z_out = (MYFLT*)&out_z->data[voice_index];
+    deviation = signed_deviation(max_deviation, n_voices, voice_index);
+    if (UNLIKELY(offset)){
+      memset(x_out, '\0', offset * sizeof(MYFLT));
+      memset(y_out, '\0', offset * sizeof(MYFLT));
+      memset(z_out, '\0', offset*sizeof(MYFLT));
+      }
+    if (UNLIKELY(early)) {
+      memset(&x_out[sample_count], '\0', early*sizeof(MYFLT));
+      memset(&y_out[sample_count], '\0', early*sizeof(MYFLT));
+      memset(&z_out[sample_count], '\0', early*sizeof(MYFLT));
+    }
+    for (sample_index = offset; sample_index < sample_count;
+	 sample_index++) {
+      for (int j = 0; j < skip; j++){
+        /* fuctions for the lorenz attractor
+           https://en.wikipedia.org/wiki/Lorenz_system
+         */
+        x_with_dev = x + deviation;
+        y_with_dev = y + deviation;
+        z_with_dev = z + deviation;
+	xx = (sigma * (y_with_dev - x_with_dev))       * time;
+	yy = (x_with_dev     * (rho - z_with_dev) - y_with_dev) * time;
+	z  += ((x_with_dev * y_with_dev) - (beta * z_with_dev))  * time;
+	x  += xx;
+	y  += yy;
+      }
+      x_out[sample_index] = x;
+      y_out[sample_index] = y;
+      z_out[sample_index] = z;
+    }
+  }
+
   return OK;
 }
