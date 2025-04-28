@@ -18,8 +18,7 @@ instr 1
   iY = 0.35
   iZ = 1.16
 
-  aX, aY, aZ thomas aFreq, kResetTrigger, kB, kDelta, kSkip, iX,\
-    iY, iZ
+  aX, aY, aZ thomas aFreq, kResetTrigger, kB, kDelta, kSkip, iX, iY, iZ
 
   // pregain
   iPreGain = 0.05
@@ -28,7 +27,6 @@ instr 1
   aZ *= iPreGain
 
   // output
-  iChn = 0
   aX1, aX2 pan2 aX, 0
   aY1, aY2 pan2 aY, 0.5
   aZ1, aZ2 pan2 aZ, 1

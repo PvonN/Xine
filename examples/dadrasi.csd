@@ -9,7 +9,7 @@ nchnls = 2
 0dbfs = 1.0
 
 instr 1
-  aFreq = randomi(20, 100, 1)
+  aFreq = randomi(80, 1000, 1)
   kResetTrigger = 0
   kA = 3
   kB = 2.7
