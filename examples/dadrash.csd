@@ -31,7 +31,6 @@ instr 1
   aZ *= iPreGain
 
   // output
-  iChn = 0
   aX1, aX2 pan2 aX, 0
   aY1, aY2 pan2 aY, 0.5
   aZ1, aZ2 pan2 aZ, 1

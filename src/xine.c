@@ -13,22 +13,16 @@
 ////////////////////////////////////////////////////////////////////////////////
 #define S(x)    sizeof(x)
 static OENTRY localops[] = {
-    /* lorenz opcodes */
-    {"lorenz2", S(LORENZ2), 0, 7, "aaa", "akkkkkkiii", (SUBR)lorenz2_init,
-     (SUBR)lorenz2_process},
-    {"lorenzh", S(LORENZ_H), 0, 7, "aaa", "akkkkkkiii", (SUBR)lorenz_h_init,
-     (SUBR)lorenz_h_process},
-    {"lorenzi", S(LORENZ_I), 0, 7, "aaa", "akkkkkkiii", (SUBR)lorenz_i_init,
-     (SUBR)lorenz_i_process},
-	  /* lorenz trigger opcodes */
-	{"lorenz2t", S(LORENZ2T), 0, 7, "aaa", "kkkkkkkiii",
-	 (SUBR)lorenz2t_init, (SUBR)lorenz2t_process},
-	
-    /* thomas opcodes */
+  /* lorenz opcodes */
+  {"lorenz2", S(LORENZ2), 0, 7, "aaa", "akkkkkkiii", (SUBR)lorenz2_init,
+   (SUBR)lorenz2_process},
+  {"lorenzh", S(LORENZ_H), 0, 7, "aaa", "akkkkkkiii", (SUBR)lorenz_h_init,
+   (SUBR)lorenz_h_process},
+  {"lorenzi", S(LORENZ_I), 0, 7, "aaa", "akkkkkkiii", (SUBR)lorenz_i_init,
+   (SUBR)lorenz_i_process},
+  /* thomas opcodes */
   {"thomas", S(THOMAS), 0, 7, "aaa", "akkkkiii",
    (SUBR)thomas_init, (SUBR)thomas_process},
-  /* {"thomas", S(THOMAS), 0, 7, "a[]a[]a[]", "akkkkiiiii", */
-  /*  (SUBR)thomas_particle_init, (SUBR)thomas_particle_process}, */
   {"thomash", S(THOMAS_H), 0, 7, "aaa", "akkkkiii",
    (SUBR)thomas_h_init, (SUBR)thomas_h_process},
   {"thomasi", S(THOMAS_I), 0, 7, "aaa", "akkkkiii",
