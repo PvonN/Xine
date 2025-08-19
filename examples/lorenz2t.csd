@@ -10,7 +10,7 @@ nchnls = 2
 0dbfs = 1.0
 
 instr 1
-  aFreq = 10000
+  kCTrig metro 0.5
   kResetTrig = 0
   kSigma =  randomi(10,12,1) // 10 good default
   kRho = randomi(28,20,1)    // 28 good default
@@ -20,7 +20,7 @@ instr 1
   iX = 2.3
   iY = .20
   iZ = 1.0
-  aX, aY, aZ lorenzi aFreq, kResetTrig, kSigma, kRho, kBeta, kDelta, kSkip, iX, iY, iZ
+  aX, aY, aZ lorenz2t kCTrig, kResetTrig, kSigma, kRho, kBeta, kDelta, kSkip, iX, iY, iZ
 
   // pregain
   iPreGain = 0.015
@@ -43,21 +43,3 @@ endin
 i1 0 20
 </CsScore>
 </CsoundSynthesizer>
-
-<bsbPanel>
- <label>Widgets</label>
- <objectName/>
- <x>100</x>
- <y>100</y>
- <width>320</width>
- <height>240</height>
- <visible>true</visible>
- <uuid/>
- <bgcolor mode="background">
-  <r>240</r>
-  <g>240</g>
-  <b>240</b>
- </bgcolor>
-</bsbPanel>
-<bsbPresets>
-</bsbPresets>

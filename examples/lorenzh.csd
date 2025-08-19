@@ -8,7 +8,7 @@ sr = 44100
 ksmps = 16
 nchnls = 2
 0dbfs = 1.0
-
+turnoff 
 instr 1
   aFreq = 10000
   kResetTrig = 0
